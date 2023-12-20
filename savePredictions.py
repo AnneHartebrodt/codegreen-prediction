@@ -6,6 +6,7 @@ import os
 import datetime
 from datetime import datetime, timedelta
 import redis
+
 import json
 from dotenv import load_dotenv
 import predictionModel as ml

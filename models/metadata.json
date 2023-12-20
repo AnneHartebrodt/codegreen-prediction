@@ -1,35 +1,11 @@
 {
   "models":[
     {
-      "name":"BE_v1.h5",
-      "country":"BE",
-      "input_sequence":60,
-      "description":"Trained on historical data (2020-01-01 - 2023-05-01)"
-    },
-    {
-      "name":"BG_v1.h5",
-      "country":"BG",
-      "input_sequence":24,
-      "description":"Trained on historical data (2020-01-01 - 2023-05-01)"
-    },
-    {
-      "name":"EE_v1.h5",
-      "country":"EE",
-      "input_sequence":60,
-      "description":"Trained on historical data (2020-01-01 - 2023-05-01)"
-    },
-    {
-      "name":"ES_v1.h5",
-      "country":"ES",
-      "input_sequence":24,
-      "description":"Trained on historical data (2020-01-01 - 2023-05-01)"
-    },
-    {
-      "name":"SE_v1.h5",
-      "country":"SE",
-      "input_sequence":24,
-      "description":"Trained on historical data (2020-01-01 - 2023-05-01)"
+      "name": "CZ_v1.h5",
+      "country": "CZ",
+      "input_sequence": 24,
+      "scaler": {"name":"MinMaxScaler", "data_min": [4], "data_max": [34], "scale": [0.03333333], "min": [-0.13333333]},
+      "description": "Trained on historical data (2020-01-01 - 2023-05-01)"
     }
-
   ]
 }
