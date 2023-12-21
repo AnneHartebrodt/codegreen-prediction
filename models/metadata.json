@@ -1,11 +1,1 @@
-{
-  "models":[
-    {
-      "name": "CZ_v1.h5",
-      "country": "CZ",
-      "input_sequence": 24,
-      "scaler": {"name":"MinMaxScaler", "data_min": [4], "data_max": [34], "scale": [0.03333333], "min": [-0.13333333]},
-      "description": "Trained on historical data (2020-01-01 - 2023-05-01)"
-    }
-  ]
-}
+{"models": [{"name": "DE_StandardScaler_model_24.h5", "version": 1, "country": "DE", "input_sequence": 24, "scaler": {"name": "StandardScaler", "scale": [15.767449748908355], "mean": [39.62043795620438]}, "description": "Trained on historical data (2020-01-01 - 2023-05-01)"}, {"name": "FR_StandardScaler_model_48.h5", "version": 1, "country": "FR", "input_sequence": 48, "scaler": {"name": "StandardScaler", "scale": [6.415490823485095], "mean": [23.130246350364963]}, "description": "Trained on historical data (2020-01-01 - 2023-05-01)"}, {"name": "PL_MinMaxScaler_model_120.h5", "version": 1, "country": "PL", "input_sequence": 120, "scaler": {"name": "MinMaxScaler", "data_min": [1.0], "data_max": [57.0], "scale": [0.017857142857142856], "min": [-0.017857142857142856]}, "description": "Trained on historical data (2020-01-01 - 2023-05-01)"}, {"name": "CH_StandardScaler_model_96.h5", "version": 1, "country": "CH", "input_sequence": 96, "scaler": {"name": "StandardScaler", "scale": [19.803016600075686], "mean": [45.33485401459854]}, "description": "Trained on historical data (2020-01-01 - 2023-05-01)"}, {"name": "NL_StandardScaler_model_96.h5", "version": 1, "country": "NL", "input_sequence": 96, "scaler": {"name": "StandardScaler", "scale": [10.839645485125265], "mean": [16.836070559610704]}, "description": "Trained on historical data (2020-01-01 - 2023-05-01)"}, {"name": "CZ_MinMaxScaler_model_24.h5", "version": 1, "country": "CZ", "input_sequence": 24, "scaler": {"name": "MinMaxScaler", "data_min": [4.0], "data_max": [34.0], "scale": [0.03333333333333333], "min": [-0.13333333333333333]}, "description": "Trained on historical data (2020-01-01 - 2023-05-01)"}]}

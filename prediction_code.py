@@ -2,10 +2,11 @@ import re
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 import numpy as np
+import matplotlib.pyplot as plt
 from tensorflow.keras.models import load_model
 
 # Read the training dataset
-training_set1 = pd.read_csv('/home/bionets-og86asub/Documents/greenerai/codegreen-prediction-tool/models/CZ-202001010000-202301010000-actual-60.csv')
+training_set1 = pd.read_csv('CZ-202001010000-202301010000-actual-60.csv')
 last_column_df = training_set1[['percentRenewable', 'startTime']].copy()
 
 # Determine the size of the training set for the model
@@ -14,25 +15,8 @@ dataset_97 = last_column_df.iloc[:n_97]
 
 # Extract the last 100 rows for prediction
 last_values = dataset_97.tail(100)
-scaler = StandardScaler()
-scaler.fit(last_column_df[['percentRenewable']])
 
-
-new_scaler = StandardScaler(with_mean=False, with_std=False)
-new_scaler.mean_ = scaler.mean_
-new_scaler.scale_ = scaler.scale_
-
-scaler = MinMaxScaler()
-scaler.fit(last_column_df[['percentRenewable']])
-
-new_minmax_scaler = MinMaxScaler(feature_range=(0, 1))
-new_minmax_scaler.data_min_ = scaler.data_min_
-new_minmax_scaler.data_max_ = scaler.data_max_
-new_minmax_scaler.scale_ = scaler.scale_
-new_minmax_scaler.min_ = scaler.min_
-
-scaler_dict = {"data_min":scaler.data_min_, "data_max": scaler.data_max_, "scale": scaler.scale_, "min" :scaler.min_}
-def predict(model_name, last_values, scaler):
+def predict(model_name, last_values):
     """
     Predicts the next 48 hours of percent renewable energy based on a pre-trained model.
 
@@ -46,10 +30,10 @@ def predict(model_name, last_values, scaler):
     # Extract scaling technique and sequence length from the model name
     last_values_subset = last_values[['percentRenewable', 'startTime']].copy()
     last_values_subset['startTime'] = pd.to_datetime(last_values_subset['startTime'], format='%Y%m%d%H%M')
-
+    
     # Extract the last timestamp from the input data
     last_timestamp = last_values_subset['startTime'].iloc[-1]
-
+    
     # Extract sequence length from the model name
     match = re.search(r'_(\d+).h5', model_name)
     if not match:
@@ -61,9 +45,19 @@ def predict(model_name, last_values, scaler):
     model = load_model(model_name)
 
     # Extract the last (seq_len-1) values from last_values
-    last_values = last_values['percentRenewable'].tail(seq_len - 1).values.flatten()
+    last_values = last_values['percentRenewable'].tail(seq_len-1).values.flatten()
 
-    # Initialize the scaler based on the scaling techniq
+    # Initialize the scaler based on the scaling technique
+    if 'MinMaxScaler' in model_name:
+        scaler = MinMaxScaler()
+    elif 'StandardScaler' in model_name:
+        scaler = StandardScaler()
+    else:
+        raise ValueError(f"Unsupported scaling technique in model name: {model_name}")
+
+    # Fit the scaler on the training data
+    scaler.fit(last_column_df[['percentRenewable']])
+
     # List to store the forecast values
     forecast_values = []
 
@@ -73,7 +67,7 @@ def predict(model_name, last_values, scaler):
         scaled_last_values = scaler.transform(last_values.reshape(-1, 1))
 
         # Prepare the input for prediction
-        x_pred = scaled_last_values[-(seq_len - 1):].reshape(1, (seq_len - 1), 1)
+        x_pred = scaled_last_values[-(seq_len-1):].reshape(1, (seq_len-1), 1)
 
         # Predict the next value
         predicted_value = model.predict(x_pred)
@@ -94,8 +88,7 @@ def predict(model_name, last_values, scaler):
     forecast_df = pd.DataFrame({'Timestamp': forecast_timestamps, 'Forecast': forecast_values})
     return forecast_df
 
-
 # Example usage:
-model_name = '/home/bionets-og86asub/Documents/greenerai/codegreen-prediction-tool/models/CZ_MinMaxScaler_model_24.h5'  # You can replace this with the actual model name
-forecast_df = predict(model_name, last_values, new_scaler)
+model_name = 'CZ_MinMaxScaler_model_24_v1.h5'  # You can replace this with the actual model name
+forecast_df = predict(model_name, last_values)
 print(forecast_df)

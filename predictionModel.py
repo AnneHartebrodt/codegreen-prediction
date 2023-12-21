@@ -22,6 +22,7 @@ from sklearn.preprocessing import MinMaxScaler, StandardScaler
 def get_model_metadata(model):
     """Returns metadata for the selected model from the metadata.json file in the model folder"""
     with open("./models/metadata.json", "r") as file:
+
         data = json.load(file)
         obj = [o for o in data["models"] if o["name"] == model]
         if len(obj) == 1:
@@ -53,8 +54,7 @@ def get_available_country_list():
     with open("./models/metadata.json", "r") as file:
         data = json.load(file)
         obj = [o["country"] for o in data['models']]
-    print(obj)
-    return  obj
+    return obj
 
 def get_latest_model_name_for(country):
     """Returns the latest prediction model version number for a country.
@@ -71,8 +71,25 @@ def get_latest_model_name_for(country):
                 highestNumberFile = fileName
     return highestNumberFile
 
+def get_latest_model_name_for(country):
+    """Returns the latest prediction model version number for a country.
+    All models stored in the 'model' folder follow a common file naming convention: "countrycode_version".
+    This method returns the value of the highest version available for the given country.
+    """
+    last_version  = -1
+    filename = None
+    with open("./models/metadata.json", "r") as file:
+        data = json.load(file)['models']
+        for d in data:
+            if d['country'] == country:
+                if d['version']>last_version:
+                    last_version = d['version']
+                    filename = d['name']
+    return filename, last_version
 
-def get_date_range():
+
+
+def get_date_range(input_sequence):
     """Returns a dictionary comprising two keys: 'start' and 'end'. 
     These values are used as the start and end dates to retrieve actual generation data from the ENTSOE API.
     The 'start' date is established as 3 days before the current date, ensuring a comprehensive historical range. 
@@ -84,7 +101,8 @@ def get_date_range():
     For instance, if the current time is 14:34, the end date will be 13:00 of the current day, encompassing data up to the preceding hour.
     """
     today_utc = datetime.now()
-    start_date = (today_utc - timedelta(days=3)).replace(hour=0,
+    days = input_sequence/24
+    start_date = (today_utc - timedelta(days=days)).replace(hour=0,
                                                          minute=0, second=0, microsecond=0)
     end_date = (today_utc - timedelta(hours=1)
                 ).replace(minute=0, second=0, microsecond=0)
@@ -100,62 +118,12 @@ def get_percent_actual_generation(country, input_sequence):
     The value of n is determined by the input_sequence provided.
     The output from this method serves as input for running the model.
     '''
-    input = get_date_range()
+    input = get_date_range(input_sequence)
     data = en.get_actual_percent_renewable(
         country, input["start"], input["end"], True)
     # data.to_csv("./data/test-"+country+".csv")
     last_n_rows = data.tail(input_sequence)
     return last_n_rows
-
-
-def run_model(model_name, input) -> pd.DataFrame:
-    """Generates prediction values for the next 48 hours by running the provided model, using the input data. 
-    :param model_name : The file name of a model (without any extension) located within the 'model' folder. E.g "FR_v5"
-    :param input : pd.DataFrame containing the actual percentage of renewable values up to a certain time period in the recent past
-    Predictions are generated for the upcoming 48 hours, starting from the last hour in the input data
-    """
-    seq_length = len(input)
-    date = input[['startTimeUTC']].copy()
-    # Convert 'startTimeUTC' column to datetime
-    date['startTimeUTC'] = pd.to_datetime(date['startTimeUTC'])
-    # Get the last date value
-    last_date = date.iloc[-1]['startTimeUTC']
-    # Calculate the next hour
-    next_hour = last_date + timedelta(hours=1)
-    # Create a range of 48 hours starting from the next hour
-    next_48_hours = pd.date_range(next_hour, periods=48, freq='H')
-    # Create a DataFrame with the next 48 hours
-    next_48_hours_df = pd.DataFrame(
-        {'startTimeUTC': next_48_hours.strftime('%Y%m%d%H%M')})
-    # print(next_48_hours_df)
-    # Construct the model filename by appending '.h5' to the model name
-    model_filename = "./models/"+model_name
-    # Load the specified model
-    lstm = load_model(model_filename, compile=False)
-    scaler = StandardScaler()
-    percent_renewable = input['percentRenewable']
-    forecast_values_total = []
-    prev_values_total = percent_renewable.values.flatten()
-    for _ in range(48):
-        scaled_prev_values_total = scaler.fit_transform(
-            prev_values_total.reshape(-1, 1))
-        x_pred_total = scaled_prev_values_total[-(
-            seq_length-1):].reshape(1, (seq_length-1), 1)
-        # Make the prediction using the loaded model
-        predicted_value_total = lstm.predict(x_pred_total, verbose=0)
-        # Inverse transform the predicted value
-        predicted_value_total = scaler.inverse_transform(predicted_value_total)
-        forecast_values_total.append(predicted_value_total[0][0])
-        prev_values_total = np.append(prev_values_total, predicted_value_total)
-        prev_values_total = prev_values_total[1:]
-    # Create a DataFrame
-    forecast_df = pd.DataFrame(
-        {'startTimeUTC': next_48_hours_df['startTimeUTC'], 'percentRenewableForecast': forecast_values_total})
-    forecast_df["percentRenewableForecast"] = forecast_df["percentRenewableForecast"].round(
-    ).astype(int)
-    forecast_df['percentRenewableForecast'] = forecast_df['percentRenewableForecast'].apply(
-        lambda x: 0 if x <= 0 else x)
-    return forecast_df
 
 
 def predict(model_name, last_values, scaler, seq_len):
@@ -170,7 +138,6 @@ def predict(model_name, last_values, scaler, seq_len):
         pd.DataFrame: DataFrame containing the forecast values and timestamps.
     """
     # Extract scaling technique and sequence length from the model name
-    print(last_values)
     last_values_subset = last_values[['percentRenewable', 'startTimeUTC']].copy()
     last_values_subset['startTimeUTC'] = pd.to_datetime(last_values_subset['startTimeUTC'], format='%Y%m%d%H%M')
 
@@ -223,7 +190,6 @@ def get_scaler(model_meta):
     """
     Initialized the scaler from the metadata
     """
-    print(model_meta)
     if model_meta['scaler']['name'] == 'StandardScaler':
         # reinitialize scaler
         new_scaler = StandardScaler(with_mean=False, with_std=False)
@@ -249,13 +215,14 @@ def run_latest_model(country) -> dict:
     :return Dictionary { "input": { "country":"", "model":"", "start":"", "end":"",  "percentRenewable":[],  } , "output": <pandas dataframe> }
     """
     # get the name of the latest model  and its metadata
-    model_name = get_latest_model_name_for(country)
+    model_name, version = get_latest_model_name_for(country)
     model_meta = get_model_metadata(model_name)
+
     input_sequence = model_meta["input_sequence"]
     country = model_meta["country"]
     # get input for the model : last n values of percent renewable
     input_data = get_percent_actual_generation(country, input_sequence)
-    #print(input_data)
+    print(input_data.shape)
     input_percentage = input_data["percentRenewable"].tolist()
     input_start = input_data.iloc[0]["startTimeUTC"]
     input_end = input_data.iloc[-1]["startTimeUTC"]

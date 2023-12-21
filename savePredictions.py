@@ -146,7 +146,9 @@ def main():
     print("Checks done....")
     # get list of available models 
     countryList = ml.get_available_country_list()
+    print(countryList)
     for country in countryList:
+
         print("Running for "+country)
         # run model and stored it in csv file and to the redis server and log it
         predictions = ml.run_latest_model(country)
